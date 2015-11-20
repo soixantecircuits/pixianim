@@ -16,47 +16,41 @@ PixiAnim.prototype = {
     imagePrefix : '',
     pixiStage: undefined,
     loop: true,
+    autoPlay: true,
     delay: 0,
-    suffix:'jpg',
+    scale: 1,
     firstIndex : 0,
     lastIndex : 0,
     digit : 1,
+    imagePrefix: '',
     canvasID: '',
     position:{
       x: 0,
       y: 0
     },
-    autoPlay: true
+    suffix:'jpg',
   },
   _super: function(options){
     var _self = this;
-    _self.options = Object.assign(_self.options, options);
+    // Find here a way to compare passed options to default options
+    _self.options = options;
+    _self.loop = null;
   },
   construct: function (options) {
     var _self = this;
     // Options
     _self._super(options);
-    _self.stage = new PIXI.Stage();
+    _self.stage = new PIXI.Container();
     // create a renderer instance
-    _self.renderer = PIXI.autoDetectRenderer(
-      _self.options.frameSize.width,
-      _self.options.frameSize.height,
-      {
-        view: document.getElementById(this.options.canvasID),
-        transparent: true,
-        resolution: 1,
-        antialias: true
-      },
-      false);
+    _self.createRenderer();
     _self.init();
   },
   init: function() {
     var _self = this;
 
     // create a new loader
-    var loader = PIXI.loader;
-    // loader.reset();
-    loader.add( _self.options.name, _self.options.jsonPath)
+    _self.loader = PIXI.loader;
+    _self.loader.add( _self.options.name, _self.options.jsonPath)
       .load(onAssetsLoaded);
 
     function onAssetsLoaded() {
@@ -85,7 +79,7 @@ PixiAnim.prototype = {
     };
 
     function animate() {
-      requestAnimationFrame(animate);
+      _self.loop = requestAnimationFrame(animate);
       _self.renderer.render(_self.stage);
     };
   },
@@ -93,8 +87,35 @@ PixiAnim.prototype = {
     var _self = this;
     _self.animation.play();
   },
+  playFromBeginning: function(createNewRenderer){
+    var _self = this;
+    if(createNewRenderer){
+      _self.renderer = null;
+      _self.createRenderer();
+    }
+    _self.animation.gotoAndPlay(0);
+  },
   stop: function(){
     var _self = this;
     _self.animation.stop();
+  },
+  createRenderer: function(){
+    var _self = this;
+    _self.renderer = PIXI.autoDetectRenderer(
+      _self.options.frameSize.width,
+      _self.options.frameSize.height,
+      {
+        view: document.getElementById(this.options.canvasID),
+        transparent: true,
+        resolution: 1,
+        antialias: true
+      });
+  },
+  destroy: function(){
+    var _self = this;
+    cancelAnimationFrame(_self.loop);
+    _self.animation.destroy(true, true);
+    _self.renderer.destroy();
+    _self.loader.reset();
   }
 };
